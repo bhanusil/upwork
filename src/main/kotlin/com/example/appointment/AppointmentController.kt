@@ -1,5 +1,6 @@
 package com.example.appointment
 
+import com.example.appointment.exception.AppointmentException
 import org.springframework.http.HttpStatus.*
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
@@ -13,12 +14,12 @@ class AppointmentController(private val appointmentRepository: AppointmentClient
 	fun findAll() = appointmentRepository.findAllByOrderByAddedAtDesc()
 
 	@GetMapping("/appointment/{id}")
-	suspend fun findOne(@PathVariable id: String) = appointmentRepository.findById(id) ?: throw ResponseStatusException(NOT_FOUND, "This appointment does not exist")
+	fun findOne(@PathVariable id: String) = appointmentRepository.findById(id) ?: throw ResponseStatusException(NOT_FOUND, "This appointment does not exist")
 
 	@PostMapping("/appointment")
 	suspend fun createAppointment(@RequestBody appointmentClient: AppointmentClient){
 		if(holidayRepository.existsHolidayByDate(appointmentClient.date)){
-			throw ResponseStatusException(NOT_FOUND, "Selected date is holiday")
+			throw AppointmentException("Selected date is holiday")
 		}else {
 			var client = clientRepository.save(
 				Client(
@@ -39,10 +40,10 @@ class AppointmentController(private val appointmentRepository: AppointmentClient
 	}
 
 	@PutMapping("/appointment/{id}")
-	fun updateAppointment(@PathVariable("id") appointmentId: Long, @RequestBody appointmentClient: AppointmentClient) =
+	suspend fun updateAppointment(@PathVariable("id") appointmentId: Long, @RequestBody appointmentClient: AppointmentClient) =
 		if(appointmentRepository.existsById(appointmentId)){
 			if(holidayRepository.existsHolidayByDate(appointmentClient.date)){
-				throw ResponseStatusException(NOT_FOUND, "Selected date is holiday")
+				throw AppointmentException("Selected date is holiday")
 			}else{
 				appointmentRepository.save(
 					AppointmentClient(
@@ -55,12 +56,12 @@ class AppointmentController(private val appointmentRepository: AppointmentClient
 					)
 				)
 			}
-		}else throw ResponseStatusException(NOT_FOUND, "This appointment does not exist")
+		}else throw AppointmentException("This appointment does not exist")
 
 	@DeleteMapping("/appointment/{id}")
 	fun deleteAppointment(@PathVariable("id") appointmentId: Long) =
 		if(appointmentRepository.existsById(appointmentId)){
 			appointmentRepository.deleteById(appointmentId)
 
-		}else throw ResponseStatusException(NOT_FOUND, "This appointment does not exist")
+		}else throw AppointmentException("This appointment does not exist")
 }
